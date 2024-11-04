@@ -88,3 +88,10 @@ A React-based application that visualizes COVID-19 timeseries data, allowing use
 
 2. **Backend**:
    Go, ClickHouse as database.
+   
+## Project Demo
+
+https://github.com/user-attachments/assets/930c09be-3c8e-4f90-b8a8-a03cdf517874
+
+
+
