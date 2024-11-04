@@ -15,18 +15,18 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// TimeseriesData represents the structure for timeseries data
 type TimeseriesData struct {
 	Date  time.Time `json:"date"`
 	Value int64     `json:"value"`
 }
 
-// CoviScopeRes represents the structure for JSON responses
+// represents the structure for JSON responses
 type CoviScopeRes struct {
 	Data  []TimeseriesData `json:"data,omitempty"`
 	Error string           `json:"error,omitempty"`
 }
 
+// represents the structure for JSON request
 type CoviScopeReq struct {
 	StartDate       string   `json:"startDate"`
 	EndDate         string   `json:"endDate"`
@@ -35,7 +35,7 @@ type CoviScopeReq struct {
 	Countries       []string `json:"countries"`
 }
 
-// Connect to ClickHouse datasource
+// connecting to clickHouse datasource
 func connect() (driver.Conn, error) {
 	ctx := context.Background()
 
@@ -76,7 +76,7 @@ func connect() (driver.Conn, error) {
 	return conn, nil
 }
 
-// handleTimeseriesData handles the main timeseries endpoint
+// handles the main timeseries endpoint
 func handleTimeseriesData(w http.ResponseWriter, r *http.Request) {
 	var req CoviScopeReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -112,7 +112,7 @@ func handleTimeseriesData(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// validateParams checks if required parameters are provided and valid or not
+// checks if required parameters are provided and valid or not
 func validateParams(startDate, endDate, aggregationFunc, matrix string) error {
 	if startDate == "" || endDate == "" || aggregationFunc == "" || matrix == "" {
 		return errors.New("missing required parameters: start_date, end_date, aggregation_func, matrix")
@@ -148,9 +148,8 @@ func validateParams(startDate, endDate, aggregationFunc, matrix string) error {
 	return nil
 }
 
-// getTimeseriesQuery builds a SQL query based on the provided parameters.
+// builds a SQL query based on the provided parameters.
 func getTimeseriesQuery(startDate, endDate string, countries []string, aggregationFunc, matrix string) (string, []interface{}) {
-	// Initialize the base query
 	query := fmt.Sprintf(`
 		SELECT
 			toDate(date) AS date,
@@ -159,23 +158,22 @@ func getTimeseriesQuery(startDate, endDate string, countries []string, aggregati
 		WHERE date BETWEEN ? AND ?
 	`, aggregationFunc, matrix)
 
-	// Prepare the arguments
+	// preparing arguments
 	args := []interface{}{startDate, endDate}
 
-	// If countries are provided, add them to the query
+	// if countries are provided, add them to the query
 	if len(countries) > 0 {
-		// Create placeholders for each country
+		// creating placeholders for each country
 		placeholders := make([]string, len(countries))
 		for i, country := range countries {
-			placeholders[i] = "?"        // Create a placeholder for each country
-			args = append(args, country) // Add the country to the arguments
+			placeholders[i] = "?"        // placeholder for each country
+			args = append(args, country) // adding countries to the arguments
 		}
 
-		// Add the country filter to the query
 		query += fmt.Sprintf(" AND location_key IN (%s)", strings.Join(placeholders, ","))
 	}
 
-	// Finish the query with grouping and ordering
+	// grouping and ordering the query
 	query += `
 		GROUP BY date
 		ORDER BY date
@@ -184,7 +182,7 @@ func getTimeseriesQuery(startDate, endDate string, countries []string, aggregati
 	return query, args
 }
 
-// getTimeseriesData retrieves timeseries data with the specified aggregation and date range
+// retrieves timeseries data with the specified aggregation and date range
 func getTimeseriesData(conn driver.Conn, startDate, endDate, aggregationFunc, matrix string, countries []string) ([]TimeseriesData, error) {
 	query, args := getTimeseriesQuery(startDate, endDate, countries, aggregationFunc, matrix)
 
@@ -206,7 +204,7 @@ func getTimeseriesData(conn driver.Conn, startDate, endDate, aggregationFunc, ma
 	return results, nil
 }
 
-// sendErrorResponse writes error message with status code
+// writes error message with status code
 func sendErrorResponse(w http.ResponseWriter, statusCode int, errMessage string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)

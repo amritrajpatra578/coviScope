@@ -15,7 +15,6 @@ import {
   Grid,
   GridItem,
   Heading,
-  Icon,
   Select,
   Text,
   VStack,
@@ -110,8 +109,8 @@ const ViewPage: FunctionComponent = () => {
     setState((prevState) => {
       const isSelected = prevState.countries.includes(country);
       const newCountries = isSelected
-        ? prevState.countries.filter((c) => c !== country) // Remove if already selected
-        : [...prevState.countries, country]; // Add if not selected
+        ? prevState.countries.filter((c) => c !== country) // remove if already selected
+        : [...prevState.countries, country]; // add if not selected
 
       return { ...prevState, countries: newCountries };
     });
@@ -123,7 +122,7 @@ const ViewPage: FunctionComponent = () => {
     );
     const values = responseData.map((item) => item.value);
 
-    return [dates, values]; // X-axis (dates) and Y-axis (values)
+    return [dates, values]; //[x,y]
   };
 
   const handleOnClick = () => {
@@ -154,9 +153,6 @@ const ViewPage: FunctionComponent = () => {
                   label="Select Start Date:"
                   onDateChange={handleStartDateChange}
                 />
-                <Text mt={2} fontSize="sm" color="gray.600">
-                  Selected Start Date: {state.startDate}
-                </Text>
               </Box>
             </GridItem>
 
@@ -166,9 +162,6 @@ const ViewPage: FunctionComponent = () => {
                   label="Select End Date:"
                   onDateChange={handleEndDateChange}
                 />
-                <Text mt={2} fontSize="sm" color="gray.600">
-                  Selected End Date: {state.endDate}
-                </Text>
               </Box>
             </GridItem>
           </Grid>
@@ -184,9 +177,13 @@ const ViewPage: FunctionComponent = () => {
                 <Text mb={2} fontSize="lg" fontWeight="bold">
                   Select Countries:
                 </Text>
+                <Text mb={2} fontSize="small" fontWeight="thin">
+                  If no country is selected, data for all countries will be
+                  displayed.
+                </Text>
                 <Box
                   maxH="200px"
-                  overflowY="auto" // Enable vertical scrolling
+                  overflowY="auto"
                   p={2}
                   borderWidth="1px"
                   borderRadius="md"

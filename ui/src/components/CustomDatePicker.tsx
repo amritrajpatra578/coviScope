@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FormControl, FormLabel, Input } from "@chakra-ui/react";
+import { FormControl, FormLabel, Input, Text } from "@chakra-ui/react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import moment from "moment";
@@ -25,7 +25,13 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
 
   return (
     <FormControl>
-      <FormLabel>{label}</FormLabel>
+      <FormLabel>
+        {
+          <Text mb={2} fontSize="large" fontWeight="bold">
+            {label}
+          </Text>
+        }
+      </FormLabel>
       <DatePicker
         selected={selectedDate}
         onChange={handleDateChange}

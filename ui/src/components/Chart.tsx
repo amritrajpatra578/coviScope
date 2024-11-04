@@ -4,33 +4,20 @@ import uPlot from "uplot";
 import UplotReact from "uplot-react";
 import "uplot/dist/uPlot.min.css";
 
-interface ChartProps {
+export interface ChartProps {
   data: uPlot.AlignedData;
 }
 
 const Chart: FunctionComponent<ChartProps> = ({ data }) => {
   const tooltipRef = useRef<HTMLDivElement | null>(null);
 
-  if (!data || data.length === 0) {
-    return (
-      <Box
-        p={4}
-        textAlign="center"
-        borderWidth="1px"
-        borderRadius="md"
-        shadow="sm"
-        bg="gray.50"
-      >
-        <Text fontSize="lg" color="gray.600">
-          No data available to display the chart.
-        </Text>
-      </Box>
-    );
+  if (!data || data.length === 0 || data == null) {
+    console.log("No data available to display the chart.");
   }
 
   const generateSeriesOptions = () => {
     return data.slice(1).map((_, index) => ({
-      label: `Country ${index + 1}`,
+      label: `Cases by Countries`,
       stroke: `hsl(${index * 30}, 70%, 50%)`,
       width: 2,
     }));
@@ -40,16 +27,15 @@ const Chart: FunctionComponent<ChartProps> = ({ data }) => {
     title: "COVID-19 Metric Over Time",
     width: 800,
     height: 400,
-    padding: [20, 10, 40, 60], // Adjust padding for proper alignment
+    padding: [20, 10, 40, 60],
     scales: {
       x: { time: true },
       y: {},
     },
     series: [
       {
-        label: "Time",
-        value: (self, rawValue) =>
-          new Date(rawValue * 1000).toLocaleDateString(),
+        label: "TimeRange",
+        value: (_, rawValue) => new Date(rawValue * 1000).toLocaleDateString(),
       },
       ...generateSeriesOptions(),
     ],
@@ -71,19 +57,23 @@ const Chart: FunctionComponent<ChartProps> = ({ data }) => {
     ],
     hooks: {
       setCursor: [
-        (u) => {
+        (u: uPlot) => {
           const tooltip = tooltipRef.current;
           const { left, top, idx } = u.cursor;
 
-          // Check if tooltip exists and the cursor is in range
+          // checking if tooltip exists and the cursor is in range or not
           if (tooltip && idx !== null && left !== null && top !== null) {
-            // Tooltip content with series values at hovered point
+            // tooltip content with series of values at while hovering
             const date = new Date(
               data[0][idx as number] * 1000
             ).toLocaleDateString();
+
             let content = `<strong>Date: ${date}</strong><br>`;
+
             u.series.forEach((s, i) => {
-              if (i === 0) return; // Skip x-axis label
+              if (i === 0) {
+                return;
+              }
               content += `${s.label}: ${data[i][idx as number]}<br>`;
             });
 
@@ -92,7 +82,7 @@ const Chart: FunctionComponent<ChartProps> = ({ data }) => {
             tooltip.style.left = `${left}px`;
             tooltip.style.top = `${top}px`;
           } else if (tooltip) {
-            // Hide the tooltip when the cursor is outside the chart
+            // hiding tooltip when the cursor is outside the chart
             tooltip.style.display = "none";
           }
         },
