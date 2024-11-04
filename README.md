@@ -11,6 +11,7 @@ A React-based application that visualizes COVID-19 timeseries data, allowing use
 - [Setup and Installation](#setup-and-installation)
 - [Usage](#usage)
 - [Technologies Used](#technologies-used)
+- [Project Demo](#project-demo)
 
 ## Features
 
