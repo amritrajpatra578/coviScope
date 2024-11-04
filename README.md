@@ -49,7 +49,7 @@ A React-based application that visualizes COVID-19 timeseries data, allowing use
   ./clickhouse client
   ```
 
-- **Follow below for next step**
+- **Follow for next step**
   https://clickhouse.com/docs/en/getting-started/example-datasets/covid19
 
 3. **Install Dependencies**:
@@ -83,4 +83,8 @@ A React-based application that visualizes COVID-19 timeseries data, allowing use
 
 ## Technologies Used
 
--**Frontend**:Next.js, TypeScript, Chakra UI, uPlot. -**Backend**: Go, ClickHouse as database
+1. **Frontend**:
+   Next.js, TypeScript, Chakra UI, uPlot.
+
+2. **Backend**:
+   Go, ClickHouse as database.
