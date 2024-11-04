@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { FunctionComponent, useState } from "react";
 import { FormControl, FormLabel, Input, Text } from "@chakra-ui/react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -9,7 +9,7 @@ interface CustomDatePickerProps {
   onDateChange: (date: string) => void;
 }
 
-const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
+const CustomDatePicker: FunctionComponent<CustomDatePickerProps> = ({
   label,
   onDateChange,
 }) => {
