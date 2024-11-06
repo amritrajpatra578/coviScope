@@ -1,11 +1,11 @@
 import { getCoviScopeData } from "@/api";
-import Chart from "@/components/Chart";
+import Chart, { ChartProps } from "@/components/Chart";
 import CustomDatePicker from "@/components/CustomDatePicker";
 import {
+  countryList,
   CoviScopeReq,
   CoviScopeRes,
   matrixType,
-  TimeseriesData,
 } from "@/defination";
 import {
   Box,
@@ -21,77 +21,18 @@ import {
 } from "@chakra-ui/react";
 import { Fragment, FunctionComponent, useState } from "react";
 
-const countryList = [
-  { name: "United States", code: "US" },
-  { name: "India", code: "IN" },
-  { name: "China", code: "CN" },
-  { name: "Netherlands", code: "NL" },
-  { name: "Russia", code: "" },
-  { name: "Rwanda", code: "RW" },
-  { name: "Saudi Arabia", code: "SA" },
-  { name: "Solomon Islands", code: "SB" },
-  { name: "Seychelles", code: "SC" },
-  { name: "Sudan", code: "SD" },
-  { name: "Slovenia", code: "SI" },
-  { name: "Svalbard &", code: "SJ" },
-  { name: "Slovakia", code: "SK" },
-  { name: "Sierra Leone", code: "SL" },
-  { name: "San Marino", code: "SM" },
-  { name: "Senegal", code: "SN" },
-  { name: "Somalia", code: "SO" },
-  { name: "Suriname", code: "SR" },
-  { name: "South Sudan", code: "SS" },
-  { name: "São Tomé", code: "ST" },
-  { name: "El Salvador", code: "SV" },
-  { name: "Sint Maarten", code: "SX" },
-  { name: "Syria", code: "SY" },
-  { name: "Eswatini", code: "SZ" },
-  { name: "Tristan da", code: "TA" },
-  { name: "Turks &", code: "TC" },
-  { name: "Chad", code: "TD" },
-  { name: "French Southern", code: "TF" },
-  { name: "Togo", code: "TG" },
-  { name: "Thailand", code: "TH" },
-  { name: "Tajikistan", code: "TJ" },
-  { name: "Tokelau", code: "TK" },
-  { name: "Timor—Leste", code: "TL" },
-  { name: "Turkmenistan", code: "TM" },
-  { name: "Tunisia", code: "TN" },
-  { name: "Tonga", code: "TO" },
-  { name: "Turkey", code: "TR" },
-  { name: "Trinidad &", code: "TT" },
-  { name: "Tuvalu", code: "TV" },
-  { name: "Ukraine", code: "UA" },
-  { name: "Uganda", code: "UG" },
-  { name: "U.S", code: "UM" },
-  { name: "United States", code: "US" },
-  { name: "Uruguay", code: "UY" },
-  { name: "Uzbekistan", code: "UZ" },
-  { name: "Vatican City", code: "VA" },
-  { name: "St.", code: "VC" },
-  { name: "Venezuela", code: "VE" },
-  { name: "British Virgin", code: "VG" },
-  { name: "U.S", code: "VI" },
-  { name: "Vietnam", code: "VN" },
-  { name: "Vanuatu", code: "VU" },
-  { name: "Samoa", code: "WS" },
-  { name: "Kosovo", code: "XK" },
-  { name: "Yemen", code: "YE" },
-  { name: "Mayotte", code: "YT" },
-  { name: "South Africa", code: "ZA" },
-  { name: "Zambia", code: "ZM" },
-];
-
 const ViewPage: FunctionComponent = () => {
   const [state, setState] = useState<CoviScopeReq>({
     startDate: "",
     endDate: "",
-    aggregationFunc: "sum",
     matrix: "cumulative_confirmed",
     countries: [],
   });
 
-  const [chartData, setChartData] = useState<uPlot.AlignedData | null>(null);
+  const [chartData, setChartData] = useState<ChartProps>({
+    data: [],
+    matrix: "new_confirmed",
+  });
 
   const handleStartDateChange = (date: string) => {
     setState({ ...state, startDate: date });
@@ -116,22 +57,16 @@ const ViewPage: FunctionComponent = () => {
     });
   };
 
-  const transformData = (responseData: TimeseriesData[]): uPlot.AlignedData => {
-    const dates = responseData.map(
-      (item) => new Date(item.date).getTime() / 1000
-    );
-    const values = responseData.map((item) => item.value);
-
-    return [dates, values]; //[x,y]
-  };
-
   const handleOnClick = () => {
     getCoviScopeData(state)
       .then((res: CoviScopeRes) => {
         if (res.error) {
           console.error("API error:", res.error);
         } else {
-          setChartData(transformData(res.data));
+          setChartData({
+            data: res.data,
+            matrix: state.matrix,
+          });
         }
       })
       .catch((err) => {
@@ -178,7 +113,7 @@ const ViewPage: FunctionComponent = () => {
                   Select Countries:
                 </Text>
                 <Text mb={2} fontSize="small" fontWeight="thin">
-                  If no country is selected, data for all countries will be
+                  If no country is selected, data for top 5 countries will be
                   displayed.
                 </Text>
                 <Box
@@ -231,7 +166,9 @@ const ViewPage: FunctionComponent = () => {
           >
             Fetch Data
           </Button>
-          {chartData && <Chart data={chartData} />}
+          {chartData && (
+            <Chart data={chartData.data} matrix={chartData.matrix} />
+          )}
         </VStack>
       </Container>
     </Fragment>

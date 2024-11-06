@@ -16,8 +16,9 @@ import (
 )
 
 type TimeseriesData struct {
-	Date  time.Time `json:"date"`
-	Value int64     `json:"value"`
+	Country string    `json:"country"`
+	Date    time.Time `json:"date"`
+	Value   int64     `json:"value"`
 }
 
 // represents the structure for JSON responses
@@ -28,11 +29,10 @@ type CoviScopeRes struct {
 
 // represents the structure for JSON request
 type CoviScopeReq struct {
-	StartDate       string   `json:"startDate"`
-	EndDate         string   `json:"endDate"`
-	AggregationFunc string   `json:"aggregationFunc"`
-	Matrix          string   `json:"matrix"`
-	Countries       []string `json:"countries"`
+	StartDate string   `json:"startDate"`
+	EndDate   string   `json:"endDate"`
+	Matrix    string   `json:"matrix"`
+	Countries []string `json:"countries"`
 }
 
 // connecting to clickHouse datasource
@@ -76,15 +76,13 @@ func connect() (driver.Conn, error) {
 	return conn, nil
 }
 
-// handles the main timeseries endpoint
 func handleTimeseriesData(w http.ResponseWriter, r *http.Request) {
 	var req CoviScopeReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		sendErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-
-	if err := validateParams(req.StartDate, req.EndDate, req.AggregationFunc, req.Matrix); err != nil {
+	if err := validateParams(req.StartDate, req.EndDate, req.Matrix); err != nil {
 		sendErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -97,25 +95,24 @@ func handleTimeseriesData(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	data, err := getTimeseriesData(conn, req.StartDate, req.EndDate, req.AggregationFunc, req.Matrix, req.Countries)
+	data, err := getTimeseriesData(conn, req.StartDate, req.EndDate, req.Matrix, req.Countries)
 	if err != nil {
 		sendErrorResponse(w, http.StatusInternalServerError, "Error fetching data")
-		log.Println("failed to fetch data:", err)
+		log.Println("Failed to fetch data:", err)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
 	if err := json.NewEncoder(w).Encode(CoviScopeRes{Data: data}); err != nil {
-		log.Println("failed to encode data:", err)
+		log.Println("Failed to encode data:", err)
 	}
 }
 
 // checks if required parameters are provided and valid or not
-func validateParams(startDate, endDate, aggregationFunc, matrix string) error {
-	if startDate == "" || endDate == "" || aggregationFunc == "" || matrix == "" {
-		return errors.New("missing required parameters: start_date, end_date, aggregation_func, matrix")
+func validateParams(startDate, endDate, matrix string) error {
+	if startDate == "" || endDate == "" || matrix == "" {
+		return errors.New("missing required parameters: start_date, end_date, matrix")
 	}
 
 	if _, err := time.Parse("2006-01-02", startDate); err != nil {
@@ -124,16 +121,6 @@ func validateParams(startDate, endDate, aggregationFunc, matrix string) error {
 
 	if _, err := time.Parse("2006-01-02", endDate); err != nil {
 		return errors.New("invalid end_date format (expected YYYY-MM-DD)")
-	}
-
-	validAggregations := map[string]bool{
-		"sum": true,
-		"avg": true,
-		"max": true,
-		"min": true,
-	}
-	if !validAggregations[aggregationFunc] {
-		return errors.New("invalid aggregation function name: (expected one of: sum, avg, max, min)")
 	}
 
 	validColumns := map[string]bool{
@@ -148,44 +135,48 @@ func validateParams(startDate, endDate, aggregationFunc, matrix string) error {
 	return nil
 }
 
-// builds a SQL query based on the provided parameters.
-func getTimeseriesQuery(startDate, endDate string, countries []string, aggregationFunc, matrix string) (string, []interface{}) {
-	query := fmt.Sprintf(`
-		SELECT
-			toDate(date) AS date,
-			%s(%s) AS value
-		FROM covid19
-		WHERE date BETWEEN ? AND ?
-	`, aggregationFunc, matrix)
+func getTimeseriesQuery(startDate, endDate string, countries []string, matrix string) (string, []interface{}) {
 
-	// preparing arguments
 	args := []interface{}{startDate, endDate}
 
-	// if countries are provided, add them to the query
+	query := fmt.Sprintf(`
+		SELECT
+			location_key AS country,
+			toDate(date) AS date,
+			sum(%s) AS value
+		FROM covid19
+		WHERE date BETWEEN ? AND ?
+	`, matrix)
+
 	if len(countries) > 0 {
-		// creating placeholders for each country
+		// filtering by provided countries
 		placeholders := make([]string, len(countries))
 		for i, country := range countries {
-			placeholders[i] = "?"        // placeholder for each country
-			args = append(args, country) // adding countries to the arguments
+			placeholders[i] = "?"
+			args = append(args, country)
 		}
-
 		query += fmt.Sprintf(" AND location_key IN (%s)", strings.Join(placeholders, ","))
+	} else {
+		top10CountriesSubquery := fmt.Sprintf(`
+		SELECT location_key
+		FROM covid19
+		WHERE date BETWEEN ? AND ?
+		GROUP BY location_key
+		ORDER BY sum(%s) DESC
+		LIMIT 5
+	`, matrix)
+		query += fmt.Sprintf(" AND location_key IN (%s)", top10CountriesSubquery)
+		args = append(args, startDate, endDate) // Add startDate and endDate again for the subquery
 	}
 
-	// grouping and ordering the query
-	query += `
-		GROUP BY date
-		ORDER BY date
-	`
+	// group and order by date and country
+	query += " GROUP BY date, country ORDER BY date, country"
 
 	return query, args
 }
 
-// retrieves timeseries data with the specified aggregation and date range
-func getTimeseriesData(conn driver.Conn, startDate, endDate, aggregationFunc, matrix string, countries []string) ([]TimeseriesData, error) {
-	query, args := getTimeseriesQuery(startDate, endDate, countries, aggregationFunc, matrix)
-
+func getTimeseriesData(conn driver.Conn, startDate, endDate, matrix string, countries []string) ([]TimeseriesData, error) {
+	query, args := getTimeseriesQuery(startDate, endDate, countries, matrix)
 	rows, err := conn.Query(context.Background(), query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query execution error: %w", err)
@@ -195,7 +186,7 @@ func getTimeseriesData(conn driver.Conn, startDate, endDate, aggregationFunc, ma
 	var results []TimeseriesData
 	for rows.Next() {
 		var data TimeseriesData
-		if err := rows.Scan(&data.Date, &data.Value); err != nil {
+		if err := rows.Scan(&data.Country, &data.Date, &data.Value); err != nil {
 			return nil, fmt.Errorf("row scan error: %w", err)
 		}
 		results = append(results, data)

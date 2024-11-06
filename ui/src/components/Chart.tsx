@@ -1,23 +1,58 @@
-import { Box, Text } from "@chakra-ui/react";
+import { getCountryName, matrixType, TimeseriesData } from "@/defination";
+import { Box } from "@chakra-ui/react";
 import { FunctionComponent, useRef } from "react";
 import uPlot from "uplot";
 import UplotReact from "uplot-react";
 import "uplot/dist/uPlot.min.css";
 
 export interface ChartProps {
-  data: uPlot.AlignedData;
+  data: TimeseriesData[];
+  matrix: matrixType;
 }
 
-const Chart: FunctionComponent<ChartProps> = ({ data }) => {
+const Chart: FunctionComponent<ChartProps> = ({ data, matrix }) => {
   const tooltipRef = useRef<HTMLDivElement | null>(null);
 
-  if (!data || data.length === 0 || data == null) {
-    console.log("No data available to display the chart.");
+  // if there's no data to display
+  if (!data || data.length === 0) {
+    return (
+      <Box
+        p={6}
+        borderWidth="1px"
+        borderRadius="md"
+        shadow="md"
+        bg="white"
+        maxWidth="900px"
+        mx="auto"
+        mb={6}
+        position="relative"
+      >
+        Data not available to display in the chart.
+      </Box>
+    );
   }
 
+  // extracting a list of unique countries from the data
+  const countries = Array.from(new Set(data.map((d) => d.country)));
+
+  // preparing the X-axis data (dates)
+  const dates = Array.from(
+    new Set(data.map((d) => new Date(d.date).getTime()))
+  );
+
+  // preparing the Y-axis data (country values)
+  const countryData = countries.map((country) => {
+    return data
+      .filter((d) => d.country === country) // Filter data for this country
+      .map((d) => d.value); // Extract the values for each data point
+  });
+
+  // preparing the final uPlot data [x,y]
+  const plotData: uPlot.AlignedData = [dates, ...countryData];
+
   const generateSeriesOptions = () => {
-    return data.slice(1).map((_, index) => ({
-      label: `Cases by Countries`,
+    return countries.map((country, index) => ({
+      label: getCountryName(country) || country,
       stroke: `hsl(${index * 30}, 70%, 50%)`,
       width: 2,
     }));
@@ -34,8 +69,8 @@ const Chart: FunctionComponent<ChartProps> = ({ data }) => {
     },
     series: [
       {
-        label: "TimeRange",
-        value: (_, rawValue) => new Date(rawValue * 1000).toLocaleDateString(),
+        label: "Date",
+        value: (_, rawValue) => new Date(rawValue).toLocaleDateString(),
       },
       ...generateSeriesOptions(),
     ],
@@ -61,20 +96,16 @@ const Chart: FunctionComponent<ChartProps> = ({ data }) => {
           const tooltip = tooltipRef.current;
           const { left, top, idx } = u.cursor;
 
-          // checking if tooltip exists and the cursor is in range or not
           if (tooltip && idx !== null && left !== null && top !== null) {
-            // tooltip content with series of values at while hovering
             const date = new Date(
-              data[0][idx as number] * 1000
+              plotData[0][idx as number]
             ).toLocaleDateString();
-
             let content = `<strong>Date: ${date}</strong><br>`;
 
             u.series.forEach((s, i) => {
-              if (i === 0) {
-                return;
+              if (i !== 0) {
+                content += `${s.label}: ${plotData[i][idx as number]}<br>`;
               }
-              content += `${s.label}: ${data[i][idx as number]}<br>`;
             });
 
             tooltip.innerHTML = content;
@@ -82,7 +113,6 @@ const Chart: FunctionComponent<ChartProps> = ({ data }) => {
             tooltip.style.left = `${left}px`;
             tooltip.style.top = `${top}px`;
           } else if (tooltip) {
-            // hiding tooltip when the cursor is outside the chart
             tooltip.style.display = "none";
           }
         },
@@ -102,7 +132,7 @@ const Chart: FunctionComponent<ChartProps> = ({ data }) => {
       mb={6}
       position="relative"
     >
-      <UplotReact options={options} data={data} />
+      <UplotReact options={options} data={plotData} />
       <Box
         ref={tooltipRef}
         position="absolute"
