@@ -113,8 +113,8 @@ const ViewPage: FunctionComponent = () => {
                   Select Countries:
                 </Text>
                 <Text mb={2} fontSize="small" fontWeight="thin">
-                  If no country is selected, data for top 5 countries will be
-                  displayed.
+                  If no country is selected, data for top 10 countries will be
+                  displayed based on matric value.
                 </Text>
                 <Box
                   maxH="200px"

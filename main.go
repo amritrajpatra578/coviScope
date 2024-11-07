@@ -163,7 +163,7 @@ func getTimeseriesQuery(startDate, endDate string, countries []string, matrix st
 		WHERE date BETWEEN ? AND ?
 		GROUP BY location_key
 		ORDER BY sum(%s) DESC
-		LIMIT 5
+		LIMIT 10
 	`, matrix)
 		query += fmt.Sprintf(" AND location_key IN (%s)", top10CountriesSubquery)
 		args = append(args, startDate, endDate) // Add startDate and endDate again for the subquery
