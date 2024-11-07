@@ -35,6 +35,8 @@ export const countryList = [
   { name: "Spain", code: "ES" },
   { name: "Philippines", code: "PE" },
   { name: "Ireland", code: "GB" },
+  { name: "Iran", code: "IR" },
+  { name: "France", code: "FR" },
   { name: "Saudi Arabia", code: "SA" },
   { name: "Solomon Islands", code: "SB" },
   { name: "Seychelles", code: "SC" },
